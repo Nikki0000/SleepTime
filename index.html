@@ -366,7 +366,8 @@
 
     .sheet{
       width: min(980px, 100%);
-      height: min(88vh, 720px);
+      height: 92dvh;          /* <-- так лучше на iOS */
+      max-height: 92dvh;
       background: rgba(20,20,26,.98);
       border: 1px solid var(--line);
       border-radius: 18px;
@@ -407,14 +408,11 @@
     }
 
     .sheet-body{
-      padding: 12px;
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      overflow-y: auto; 
+      overflow-y: auto;
+      min-height: 0;          /* критично для flex+scroll */
+      touch-action: pan-y;    /* помогает свайпам */
+      overscroll-behavior: contain;
       -webkit-overflow-scrolling: touch;
-      flex: 1 1 auto;
-      min-height: 0;
     }
 
     .block{
@@ -489,6 +487,16 @@
       input[type="text"]{ font-size: 16px; }
       button{ width: 100%; }
       .btns{ width: 100%; }
+    }
+    @media (max-width: 860px){
+      .sheet-head{ padding: 10px; }
+      .sheet-body{ padding: 10px; gap: 10px; }
+      .mini td{ padding: 8px 10px; }
+    }
+    @media (max-width: 420px){
+      .mini td{ padding: 7px 9px; }
+      .mini .left{ font-size: 13px; }
+      .mini .right{ font-size: 13px; }
     }
   </style>
 </head>
