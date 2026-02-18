@@ -7,8 +7,6 @@
   <style>
     :root{
       --bg:#0b0b0d;
-      --card:#14141a;
-      --card2:#171720;
       --text:#f2f2f2;
       --muted:#b7b7c2;
       --line:#2a2a33;
@@ -39,6 +37,8 @@
       color:var(--text);
     }
 
+    body.modal-open{ overflow:hidden; }
+
     .wrap{ max-width:1100px; margin:0 auto; }
 
     .header{
@@ -59,7 +59,7 @@
       font-size:13px;
       margin-top:6px;
       line-height:1.35;
-      max-width: 780px;
+      max-width: 820px;
     }
 
     .btns{
@@ -123,7 +123,7 @@
     }
     .pill b{
       color: var(--text);
-      font-weight: 800;
+      font-weight: 900;
       letter-spacing:.1px;
     }
 
@@ -144,7 +144,7 @@
       cursor:pointer;
       user-select:none;
       color: var(--text);
-      font-weight: 700;
+      font-weight: 800;
       list-style:none;
     }
     details.how summary::-webkit-details-marker{ display:none; }
@@ -210,7 +210,7 @@
 
     .label{
       color: var(--text);
-      font-weight: 800;
+      font-weight: 900;
       letter-spacing:.1px;
       white-space:nowrap;
     }
@@ -219,8 +219,8 @@
       font-size: 12px;
     }
 
-    input[type="time"], input[type="text"]{
-      width: 122px;
+    /* ВАЖНО: вместо type=time используем стабильный ввод HHMM/HH:MM */
+    input[type="text"]{
       background: rgba(0,0,0,.28);
       border: 1px solid var(--line);
       color: var(--text);
@@ -229,11 +229,24 @@
       font-size: 14px;
       outline:none;
     }
-    input[type="text"].mins{ width: 110px; }
+    input.time{
+      width: 120px;
+      text-transform: none;
+    }
+    input.mins{
+      width: 110px;
+    }
 
     input:focus{
       border-color: rgba(255,255,255,.18);
       box-shadow: 0 0 0 3px rgba(118,215,255,.10);
+    }
+
+    .help-mini{
+      margin-top:6px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.2;
     }
 
     /* ===== Mobile cards ===== */
@@ -273,7 +286,7 @@
     }
 
     .dur-big{
-      font-weight: 900;
+      font-weight: 950;
       letter-spacing:.1px;
       text-align:right;
       white-space:nowrap;
@@ -312,9 +325,8 @@
 
     .field .v{
       display:flex;
-      gap:10px;
+      gap:8px;
       align-items:center;
-      justify-content:space-between;
     }
 
     .field .v input{
@@ -323,39 +335,46 @@
       border-radius: 12px;
     }
 
+    .mini-btn{
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 10px;
+      font-size: 12px;
+      min-width: 48px;
+      cursor: pointer;
+    }
+    .mini-btn:active{ transform: translateY(1px); }
+
     .field.full{
       grid-column: 1 / -1;
     }
 
-    .footer-note{
-      margin-top: 8px;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.35;
-      opacity: .95;
-    }
-
-    /* ===== Modal (overview) ===== */
+    /* ===== Modal / bottom sheet ===== */
     .modal{
       position: fixed;
       inset: 0;
       background: rgba(0,0,0,.55);
       display:none;
-      align-items: flex-end;
-      justify-content: center;
-      padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+      align-items:flex-end;
+      justify-content:center;
+      padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom));
       z-index: 9999;
     }
     .modal.show{ display:flex; }
 
     .sheet{
       width: min(980px, 100%);
-      background: rgba(20,20,26,.96);
+      max-height: 88vh;
+      background: rgba(20,20,26,.98);
       border: 1px solid var(--line);
       border-radius: 18px;
       box-shadow: var(--shadow);
       overflow:hidden;
       backdrop-filter: blur(10px);
+      display:flex;
+      flex-direction:column;
     }
 
     .sheet-head{
@@ -363,9 +382,10 @@
       justify-content:space-between;
       gap:10px;
       align-items:center;
-      padding: 14px 14px;
+      padding: 12px 12px;
       border-bottom: 1px solid var(--line);
       background: rgba(255,255,255,.03);
+      flex: 0 0 auto;
     }
     .sheet-title{
       display:flex;
@@ -374,19 +394,26 @@
       min-width: 0;
     }
     .sheet-title b{
-      font-size: 16px;
+      font-size: 15px;
       letter-spacing:.2px;
     }
     .sheet-title span{
       color: var(--muted);
       font-size: 12px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 70vw;
     }
 
     .sheet-body{
-      padding: 14px;
+      padding: 12px;
       display:grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
+      overflow:auto;
+      -webkit-overflow-scrolling: touch;
+      flex: 1 1 auto;
     }
 
     .block{
@@ -417,25 +444,19 @@
     .mini tr:last-child td{ border-bottom:none; }
 
     .mini .left{
-      font-weight: 800;
+      font-weight: 900;
       letter-spacing:.1px;
     }
     .mini .right{
       text-align:right;
       white-space:nowrap;
       color: var(--text);
-      font-weight: 900;
+      font-weight: 950;
       letter-spacing:.2px;
-    }
-    .mini .subline{
-      color: var(--muted);
-      font-size: 12px;
-      margin-top: 4px;
-      font-weight: 600;
     }
 
     .sheet-foot{
-      padding: 12px 14px;
+      padding: 10px 12px;
       border-top: 1px solid var(--line);
       color: var(--muted);
       font-size: 12px;
@@ -443,25 +464,28 @@
       justify-content:space-between;
       gap:10px;
       flex-wrap:wrap;
+      flex: 0 0 auto;
+      background: rgba(255,255,255,.02);
     }
 
-    /* ===== Responsive rules ===== */
+    .xbtn{
+      padding:10px 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,.06);
+    }
+
+    /* ===== Responsive ===== */
     @media (max-width: 860px){
       .grid{ display:none; }
       .cards{ display:grid; }
-      .sub{ max-width: unset; }
-      .stats{ gap:8px; }
-      .pill{ padding:8px 10px; }
       .sheet-body{ grid-template-columns: 1fr; }
-      .modal{ align-items: flex-end; }
     }
-
     @media (max-width: 420px){
       h1{ font-size:16px; }
       .sub{ font-size:12px; }
       .card-body{ grid-template-columns: 1fr; }
-      /* iOS: чтобы не зумило при фокусе */
-      input[type="time"], input[type="text"]{ font-size: 16px; }
+      /* iOS: не зумить */
+      input[type="text"]{ font-size: 16px; }
       button{ width: 100%; }
       .btns{ width: 100%; }
     }
@@ -474,8 +498,8 @@
     <div>
       <h1>Сон 💤</h1>
       <div class="sub">
-        Меняй время/минуты — хвост сдвигается автоматически, график остаётся непрерывным.
-        <br/>На iOS время применяется <b>после закрытия выбора</b> (blur), чтобы не было “скачков”.
+        Время вводится стабильно: <b>0720</b> или <b>07:20</b> → будет <b>07:20</b>.
+        Никаких прыжков iOS-пикера.
       </div>
     </div>
     <div class="btns">
@@ -495,14 +519,11 @@
       <summary>Как работает автоподстройка</summary>
       <div class="box">
         <ul>
-          <li>Меняешь <b>Start</b> или <b>End</b> — фиксируется граница, <b>весь хвост</b> сдвигается на разницу.</li>
-          <li>Меняешь <b>Минуты</b> — пересчитывается End и также сдвигается хвост.</li>
-          <li><b>Минуты</b> применяются по Enter или при выходе из поля.</li>
-          <li><b>Время</b> применяем по blur (закрыл выбор времени) — это фиксит странности iOS.</li>
+          <li>Если меняешь <b>Start</b> сегмента — мы считаем, что ты <b>сдвигаешь сегмент целиком</b> (и хвост тоже).</li>
+          <li>Если меняешь <b>End</b> — меняется длительность сегмента, а <b>хвост сдвигается</b>.</li>
+          <li>Если меняешь <b>Минуты</b> — это то же самое, что поменять End.</li>
+          <li>Промежутки между сегментами (если они есть) сохраняются, мы их не “склеиваем”.</li>
         </ul>
-        <div class="footer-note">
-          Автосохранение включено: изменения сохраняются в браузере (localStorage).
-        </div>
       </div>
     </details>
   </div>
@@ -539,29 +560,25 @@
       </div>
       <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;">
         <button id="btnCopyOverview">Скопировать</button>
-        <button id="btnCloseModal">Закрыть</button>
+        <button class="xbtn" id="btnCloseModal">✕</button>
       </div>
     </div>
 
     <div class="sheet-body">
       <div class="block">
         <h3>Время бодрствования (ВВ)</h3>
-        <table class="mini">
-          <tbody id="ovAwake"></tbody>
-        </table>
+        <table class="mini"><tbody id="ovAwake"></tbody></table>
       </div>
 
       <div class="block">
         <h3>Дневной сон (ДС)</h3>
-        <table class="mini">
-          <tbody id="ovSleep"></tbody>
-        </table>
+        <table class="mini"><tbody id="ovSleep"></tbody></table>
       </div>
     </div>
 
     <div class="sheet-foot">
       <div id="ovTotals">—</div>
-      <div>Нажми “Скопировать” — будет текст как в таблице</div>
+      <div>Закрыть: ✕ / тап по фону / Esc</div>
     </div>
   </div>
 </div>
@@ -570,20 +587,17 @@
 (() => {
   "use strict";
 
-  // ===== Storage =====
-  const STORAGE_KEY = "baby_sleep_v2";
+  const STORAGE_KEY = "baby_sleep_v3";
 
-  // ===== Utils =====
-  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  // ===== helpers =====
   const pad2 = (n) => String(n).padStart(2, "0");
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-  // Парсим время максимально “железно”:
-  // принимает "07:20", "7:20", "0720", "720"
+  // принимаем "0720", "720", "07:20", "7:20"
   function parseTimeFlexible(value) {
     const s = String(value ?? "").trim();
     if (!s) return NaN;
 
-    // HH:MM
     const m = s.match(/^(\d{1,2})\s*:\s*(\d{2})$/);
     if (m) {
       const hh = Number(m[1]);
@@ -593,7 +607,6 @@
       return hh * 60 + mm;
     }
 
-    // digits only (720 => 07:20, 0720 => 07:20)
     const d = s.replace(/[^\d]/g, "");
     if (d.length === 3) {
       const hh = Number(d.slice(0,1));
@@ -607,13 +620,12 @@
       if (hh > 23 || mm > 59) return NaN;
       return hh * 60 + mm;
     }
-
-    return NaN;
+    return NaN; // 1-2 цифры не принимаем (чтобы не было случайных 07:00)
   }
 
   function minToTime(min) {
-    min = Math.round(min);
-    min = ((min % 1440) + 1440) % 1440;
+    // отображаем строго 00:00..23:59
+    min = clamp(Math.round(min), 0, 1439);
     const hh = Math.floor(min / 60);
     const mm = min % 60;
     return `${pad2(hh)}:${pad2(mm)}`;
@@ -627,9 +639,6 @@
     return `${h} ч ${m} мин`;
   }
 
-  // Формат как на скрине:
-  // если < 60 => "50 мин"
-  // иначе => "01 10 мин"
   function fmtDurLikeTable(mins) {
     mins = Math.max(0, Math.round(mins));
     const h = Math.floor(mins / 60);
@@ -649,27 +658,27 @@
     return structuredClone ? structuredClone(x) : JSON.parse(JSON.stringify(x));
   }
 
-  // ===== Example data =====
+  // ===== example (как на твоём скрине) =====
   const example = [
-    { kind: "awake", label: "1 ВВ", start: parseTimeFlexible("07:25"), end: parseTimeFlexible("08:15") },
-    { kind: "sleep", label: "1 ДС", start: parseTimeFlexible("08:15"), end: parseTimeFlexible("09:45") },
-    { kind: "awake", label: "2 ВВ", start: parseTimeFlexible("09:45"), end: parseTimeFlexible("11:00") },
-    { kind: "sleep", label: "2 ДС", start: parseTimeFlexible("11:00"), end: parseTimeFlexible("11:40") },
-    { kind: "awake", label: "3 ВВ", start: parseTimeFlexible("11:40"), end: parseTimeFlexible("12:40") },
-    { kind: "sleep", label: "3 ДС", start: parseTimeFlexible("12:40"), end: parseTimeFlexible("14:40") },
-    { kind: "awake", label: "4 ВВ", start: parseTimeFlexible("14:40"), end: parseTimeFlexible("15:55") },
-    { kind: "sleep", label: "4 ДС", start: parseTimeFlexible("16:00"), end: parseTimeFlexible("16:40") },
-    { kind: "awake", label: "5 ВВ", start: parseTimeFlexible("16:40"), end: parseTimeFlexible("17:35") },
-    { kind: "sleep", label: "5 ДС", start: parseTimeFlexible("17:35"), end: parseTimeFlexible("19:00") },
-    { kind: "awake", label: "6 ВВ", start: parseTimeFlexible("19:00"), end: parseTimeFlexible("20:15") },
-    { kind: "sleep", label: "6 ДС", start: parseTimeFlexible("20:15"), end: parseTimeFlexible("20:55") },
-    { kind: "awake", label: "7 ВВ", start: parseTimeFlexible("20:55"), end: parseTimeFlexible("22:00") },
+    { kind:"awake", label:"1 ВВ", start: parseTimeFlexible("07:25"), end: parseTimeFlexible("08:15") },
+    { kind:"sleep", label:"1 ДС", start: parseTimeFlexible("08:15"), end: parseTimeFlexible("09:45") },
+    { kind:"awake", label:"2 ВВ", start: parseTimeFlexible("09:45"), end: parseTimeFlexible("11:00") },
+    { kind:"sleep", label:"2 ДС", start: parseTimeFlexible("11:00"), end: parseTimeFlexible("11:40") },
+    { kind:"awake", label:"3 ВВ", start: parseTimeFlexible("11:40"), end: parseTimeFlexible("12:40") },
+    { kind:"sleep", label:"3 ДС", start: parseTimeFlexible("12:40"), end: parseTimeFlexible("14:40") },
+    { kind:"awake", label:"4 ВВ", start: parseTimeFlexible("14:40"), end: parseTimeFlexible("15:55") },
+    { kind:"sleep", label:"4 ДС", start: parseTimeFlexible("16:00"), end: parseTimeFlexible("16:40") },
+    { kind:"awake", label:"5 ВВ", start: parseTimeFlexible("16:40"), end: parseTimeFlexible("17:35") },
+    { kind:"sleep", label:"5 ДС", start: parseTimeFlexible("17:35"), end: parseTimeFlexible("19:00") },
+    { kind:"awake", label:"6 ВВ", start: parseTimeFlexible("19:00"), end: parseTimeFlexible("20:15") },
+    { kind:"sleep", label:"6 ДС", start: parseTimeFlexible("20:15"), end: parseTimeFlexible("20:55") },
+    { kind:"awake", label:"7 ВВ", start: parseTimeFlexible("20:55"), end: parseTimeFlexible("22:00") },
   ];
 
-  // ===== State =====
+  // ===== state =====
   let segs = loadState() ?? deepClone(example);
 
-  // ===== Elements =====
+  // ===== DOM =====
   const tbody = document.querySelector("#tbody");
   const cards = document.querySelector("#cards");
   const statsEl = document.querySelector("#stats");
@@ -681,17 +690,7 @@
   const ovTotals = document.querySelector("#ovTotals");
   const modalSub = document.querySelector("#modalSub");
 
-  // ===== Continuity helpers =====
-  function makeContinuous() {
-    for (let i = 1; i < segs.length; i++) {
-      const prev = segs[i - 1];
-      const cur = segs[i];
-      const dur = cur.end - cur.start;
-      cur.start = prev.end;
-      cur.end = cur.start + Math.max(1, dur);
-    }
-  }
-
+  // ===== model ops =====
   function shiftFrom(index, delta) {
     if (!delta) return;
     for (let i = index; i < segs.length; i++) {
@@ -700,37 +699,42 @@
     }
   }
 
-  function enforceContinuityFrom(index) {
-    for (let i = Math.max(1, index); i < segs.length; i++) {
-      const prev = segs[i - 1];
-      const cur = segs[i];
-      const dur = cur.end - cur.start;
-      cur.start = prev.end;
-      cur.end = cur.start + Math.max(1, dur);
-    }
+  // “Нормально”: start меняем => двигаем сегмент целиком (start и end), а хвост тоже
+  function updateStart(i, newStartMin) {
+    const s = segs[i];
+    newStartMin = clamp(Math.round(newStartMin), 0, 1438);
+
+    const oldStart = s.start;
+    const delta = newStartMin - oldStart;
+    if (!delta) return;
+
+    // двигаем сегмент целиком
+    s.start += delta;
+    s.end += delta;
+
+    // хвост сдвигаем на столько же
+    shiftFrom(i + 1, delta);
+
+    // защита: end не должен вылезти
+    if (s.end <= s.start) s.end = s.start + 1;
+
+    saveState();
+    validateAndRender();
   }
 
-  // ===== Update logic =====
-  function updateTime(i, field, newMin) {
+  // end меняем => меняется длительность, хвост двигаем
+  function updateEnd(i, newEndMin) {
     const s = segs[i];
-    const oldVal = s[field];
+    newEndMin = clamp(Math.round(newEndMin), 1, 1439);
 
-    newMin = clamp(Math.round(newMin), -24*60, 48*60);
-    if (newMin === oldVal) return;
+    const oldEnd = s.end;
+    if (newEndMin <= s.start) newEndMin = s.start + 1;
 
-    if (field === "end" && newMin <= s.start) newMin = s.start + 1;
-    if (field === "start" && newMin >= s.end) newMin = s.end - 1;
+    const delta = newEndMin - oldEnd;
+    if (!delta) return;
 
-    s[field] = newMin;
-
-    const delta = s[field] - oldVal;
-    const shiftIndex = (field === "end") ? (i + 1) : i;
-    shiftFrom(shiftIndex, delta);
-
-    if (i > 0) segs[i - 1].end = segs[i].start;
-    if (i + 1 < segs.length) segs[i + 1].start = segs[i].end;
-
-    enforceContinuityFrom(i + 1);
+    s.end = newEndMin;
+    shiftFrom(i + 1, delta);
 
     saveState();
     validateAndRender();
@@ -738,23 +742,10 @@
 
   function updateDuration(i, newDurationMin) {
     newDurationMin = Math.max(1, Math.round(newDurationMin));
-    const s = segs[i];
-    const oldEnd = s.end;
-
-    const newEnd = s.start + newDurationMin;
-    s.end = newEnd;
-
-    const delta = newEnd - oldEnd;
-    shiftFrom(i + 1, delta);
-
-    if (i + 1 < segs.length) segs[i + 1].start = s.end;
-    enforceContinuityFrom(i + 1);
-
-    saveState();
-    validateAndRender();
+    updateEnd(i, segs[i].start + newDurationMin);
   }
 
-  // ===== Stats =====
+  // ===== stats/validate =====
   function calcTotals() {
     let sleep = 0, awake = 0;
     for (const s of segs) {
@@ -777,46 +768,53 @@
     `;
   }
 
-  // ===== Validation =====
   function validate() {
     let ok = true;
     const msg = [];
-
-    for (let i = 0; i < segs.length; i++) {
-      const s = segs[i];
-      if (s.end <= s.start) { ok = false; msg.push(`"${s.label}" имеет некорректную длительность`); }
-      if (i > 0 && segs[i].start !== segs[i-1].end) {
-        ok = false; msg.push(`Разрыв между "${segs[i-1].label}" и "${s.label}"`);
-      }
+    for (const s of segs) {
+      if (s.end <= s.start) { ok = false; msg.push(`"${s.label}" длительность <= 0`); }
+      if (s.start < 0 || s.end > 1439) { ok = false; msg.push(`"${s.label}" выходит за пределы дня`); }
     }
-
     return { ok, msg };
   }
 
-  // ===== Render (table + cards) =====
+  // ===== render =====
+  function typeTag(kind) {
+    return `
+      <span class="tag ${kind}">
+        <span class="dot"></span>
+        ${kind === "sleep" ? "Сон (ДС)" : "Бодрств. (ВВ)"}
+      </span>
+    `;
+  }
+
   function renderTable() {
     tbody.innerHTML = "";
     segs.forEach((s, i) => {
       const dur = Math.max(0, s.end - s.start);
-
       const tr = document.createElement("tr");
-      const typeTag = `
-        <span class="tag ${s.kind}">
-          <span class="dot"></span>
-          ${s.kind === "sleep" ? "Сон (ДС)" : "Бодрств. (ВВ)"}
-        </span>
-      `;
 
       tr.innerHTML = `
         <td class="muted">${i + 1}</td>
-        <td>${typeTag}</td>
+        <td>${typeTag(s.kind)}</td>
         <td class="label">${s.label}</td>
 
         <td>
-          <input type="time" value="${minToTime(s.start)}" data-i="${i}" data-field="start" aria-label="Start">
+          <input class="time" type="text"
+            inputmode="numeric" pattern="[0-9:]*"
+            placeholder="0720"
+            value="${minToTime(s.start)}"
+            data-i="${i}" data-field="start">
+          <div class="help-mini">0720 или 07:20</div>
         </td>
+
         <td>
-          <input type="time" value="${minToTime(s.end)}" data-i="${i}" data-field="end" aria-label="End">
+          <input class="time" type="text"
+            inputmode="numeric" pattern="[0-9:]*"
+            placeholder="0830"
+            value="${minToTime(s.end)}"
+            data-i="${i}" data-field="end">
+          <div class="help-mini">0830 или 08:30</div>
         </td>
 
         <td>
@@ -825,43 +823,30 @@
         </td>
 
         <td>
-          <input
-            type="text"
-            inputmode="numeric"
-            pattern="[0-9]*"
+          <input class="mins" type="text"
+            inputmode="numeric" pattern="[0-9]*"
             value="${dur}"
-            data-i="${i}"
-            data-field="dur"
-            class="mins"
-            aria-label="Минуты"
-          >
+            data-i="${i}" data-field="dur">
         </td>
       `;
+
       tbody.appendChild(tr);
     });
 
-    bindInputs(tbody);
+    bindInputs(tbody, false);
   }
 
   function renderCards() {
     cards.innerHTML = "";
     segs.forEach((s, i) => {
       const dur = Math.max(0, s.end - s.start);
-
       const el = document.createElement("div");
       el.className = "card";
-
-      const typeTag = `
-        <span class="tag ${s.kind}">
-          <span class="dot"></span>
-          ${s.kind === "sleep" ? "Сон (ДС)" : "Бодрств. (ВВ)"}
-        </span>
-      `;
 
       el.innerHTML = `
         <div class="card-head">
           <div class="card-title">
-            ${typeTag}
+            ${typeTag(s.kind)}
             <div class="label">${s.label}</div>
             <div class="muted">${minToTime(s.start)} → ${minToTime(s.end)}</div>
           </div>
@@ -873,32 +858,33 @@
 
         <div class="card-body">
           <div class="field">
-            <div class="k">Start</div>
+            <div class="k">Start (0720 или 07:20)</div>
             <div class="v">
-              <input type="time" value="${minToTime(s.start)}" data-i="${i}" data-field="start" aria-label="Start">
+              <input class="time" type="text" inputmode="numeric" pattern="[0-9:]*"
+                value="${minToTime(s.start)}"
+                data-i="${i}" data-field="start">
+              <button class="mini-btn" data-i="${i}" data-field="start" data-delta="-5">-5</button>
+              <button class="mini-btn" data-i="${i}" data-field="start" data-delta="5">+5</button>
             </div>
           </div>
 
           <div class="field">
-            <div class="k">End</div>
+            <div class="k">End (0830 или 08:30)</div>
             <div class="v">
-              <input type="time" value="${minToTime(s.end)}" data-i="${i}" data-field="end" aria-label="End">
+              <input class="time" type="text" inputmode="numeric" pattern="[0-9:]*"
+                value="${minToTime(s.end)}"
+                data-i="${i}" data-field="end">
+              <button class="mini-btn" data-i="${i}" data-field="end" data-delta="-5">-5</button>
+              <button class="mini-btn" data-i="${i}" data-field="end" data-delta="5">+5</button>
             </div>
           </div>
 
           <div class="field full">
             <div class="k">Минуты (Enter или выход)</div>
             <div class="v">
-              <input
-                type="text"
-                inputmode="numeric"
-                pattern="[0-9]*"
+              <input class="mins" type="text" inputmode="numeric" pattern="[0-9]*"
                 value="${dur}"
-                data-i="${i}"
-                data-field="dur"
-                class="mins"
-                aria-label="Минуты"
-              >
+                data-i="${i}" data-field="dur">
             </div>
           </div>
         </div>
@@ -907,19 +893,24 @@
       cards.appendChild(el);
     });
 
-    bindInputs(cards);
+    bindInputs(cards, true);
   }
 
-  // ===== Key fix: apply TIME on blur, not during selection =====
-  function bindInputs(root) {
-    // TIME inputs: применяем по blur (после закрытия picker-а)
-    root.querySelectorAll('input[type="time"]').forEach(inp => {
-      // запомним исходное значение на фокусе
+  function bindInputs(root, withStepButtons) {
+    // TIME inputs: применяем по blur/Enter
+    root.querySelectorAll("input.time").forEach(inp => {
       inp.addEventListener("focus", (e) => {
         e.target.dataset.prev = e.target.value;
+        setTimeout(() => { try { e.target.select(); } catch {} }, 0);
       });
 
-      // Enter -> blur (для десктопа/клавы)
+      // оставляем только цифры и :
+      inp.addEventListener("input", (e) => {
+        const v = e.target.value;
+        const cleaned = String(v).replace(/[^\d:]/g, "").slice(0, 5);
+        if (cleaned !== v) e.target.value = cleaned;
+      });
+
       inp.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
           e.preventDefault();
@@ -933,35 +924,31 @@
         const prev = e.target.dataset.prev ?? "";
         const cur = e.target.value;
 
-        // если не изменилось — ничего не делаем
         if (cur === prev) return;
 
-        // страховка на случай странных значений/ручного ввода
         const mins = parseTimeFlexible(cur);
         if (!Number.isFinite(mins)) {
-          // вернуть текущее корректное
-          e.target.value = (field === "start")
-            ? minToTime(segs[i].start)
-            : minToTime(segs[i].end);
+          // откат
+          e.target.value = field === "start" ? minToTime(segs[i].start) : minToTime(segs[i].end);
           return;
         }
 
-        updateTime(i, field, mins);
+        // применяем и нормализуем отображение
+        if (field === "start") updateStart(i, mins);
+        else updateEnd(i, mins);
       });
     });
 
-    // MINUTES inputs: iOS-friendly. Применяем по Enter или blur.
-    root.querySelectorAll('input.mins').forEach(inp => {
+    // MINUTES inputs: blur/Enter
+    root.querySelectorAll("input.mins").forEach(inp => {
+      inp.addEventListener("focus", (e) => {
+        setTimeout(() => { try { e.target.select(); } catch {} }, 0);
+      });
+
       inp.addEventListener("input", (e) => {
         const v = e.target.value;
         const cleaned = String(v).replace(/[^\d]/g, "");
         if (cleaned !== v) e.target.value = cleaned;
-      });
-
-      inp.addEventListener("focus", (e) => {
-        setTimeout(() => {
-          try { e.target.select(); } catch {}
-        }, 0);
       });
 
       inp.addEventListener("keydown", (e) => {
@@ -974,86 +961,34 @@
       inp.addEventListener("blur", (e) => {
         const i = Number(e.target.dataset.i);
         const n = safeIntFromText(e.target.value);
-
         if (!Number.isFinite(n) || n <= 0) {
           const dur = Math.max(0, segs[i].end - segs[i].start);
           e.target.value = String(dur);
           return;
         }
-
         updateDuration(i, n);
       });
     });
-  }
 
-  // ===== Save / Load =====
-  function saveState() {
-    try {
-      const payload = {
-        v: 2,
-        savedAt: Date.now(),
-        segs: segs.map(s => ({
-          kind: s.kind,
-          label: s.label,
-          start: s.start,
-          end: s.end
-        }))
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-    } catch {}
-  }
-
-  function loadState() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw);
-
-      if (!parsed || parsed.v !== 2 || !Array.isArray(parsed.segs)) return null;
-
-      const restored = parsed.segs
-        .filter(x => x && (x.kind === "sleep" || x.kind === "awake"))
-        .map(x => ({
-          kind: x.kind,
-          label: String(x.label ?? ""),
-          start: Number(x.start),
-          end: Number(x.end)
-        }));
-
-      if (restored.length === 0) return null;
-
-      for (const s of restored) {
-        if (!Number.isFinite(s.start) || !Number.isFinite(s.end)) return null;
-        if (s.end <= s.start) s.end = s.start + 1;
-      }
-      return restored;
-    } catch {
-      return null;
+    if (withStepButtons) {
+      root.querySelectorAll("button.mini-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const i = Number(btn.dataset.i);
+          const field = btn.dataset.field; // start|end
+          const delta = Number(btn.dataset.delta);
+          const base = field === "start" ? segs[i].start : segs[i].end;
+          const next = base + delta;
+          if (field === "start") updateStart(i, clamp(next, 0, 1438));
+          else updateEnd(i, clamp(next, 1, 1439));
+        });
+      });
     }
   }
 
-  // ===== Export =====
-  function exportJson() {
-    const out = segs.map(s => ({
-      kind: s.kind,
-      label: s.label,
-      start: minToTime(s.start),
-      end: minToTime(s.end),
-      durationMin: Math.max(0, s.end - s.start)
-    }));
-    const json = JSON.stringify(out, null, 2);
-
-    if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(json).catch(() => {});
-    }
-
-    console.log("EXPORT:", out);
-    alert("JSON экспортирован: см. консоль (и буфер обмена, если разрешено).");
-  }
-
-  // ===== Overview modal =====
+  // ===== modal =====
   function openModal() {
     renderOverview();
+    document.body.classList.add("modal-open");
     modal.classList.add("show");
     modal.setAttribute("aria-hidden", "false");
   }
@@ -1061,6 +996,7 @@
   function closeModal() {
     modal.classList.remove("show");
     modal.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("modal-open");
   }
 
   function renderOverview() {
@@ -1074,12 +1010,8 @@
       const dur = Math.max(0, s.end - s.start);
       return `
         <tr>
-          <td>
-            <div class="left">${s.label} (${minToTime(s.start)}–${minToTime(s.end)})</div>
-          </td>
-          <td class="right">
-            ${fmtDurLikeTable(dur)}
-          </td>
+          <td><div class="left">${s.label} (${minToTime(s.start)}–${minToTime(s.end)})</div></td>
+          <td class="right">${fmtDurLikeTable(dur)}</td>
         </tr>
       `;
     }).join("");
@@ -1088,67 +1020,114 @@
       const dur = Math.max(0, s.end - s.start);
       return `
         <tr>
-          <td>
-            <div class="left">${s.label} (${minToTime(s.start)}–${minToTime(s.end)})</div>
-          </td>
-          <td class="right">
-            ${fmtDurLikeTable(dur)}
-          </td>
+          <td><div class="left">${s.label} (${minToTime(s.start)}–${minToTime(s.end)})</div></td>
+          <td class="right">${fmtDurLikeTable(dur)}</td>
         </tr>
       `;
     }).join("");
 
-    ovTotals.textContent = `Итого: Сон ${fmtDur(t.sleep)} · Бодрств. ${fmtDur(t.awake)} · За день ${fmtDur(t.total)}`;
+    ovTotals.textContent = `Итого: Сон ${fmtDur(t.sleep)} · Бодрств. ${fmtDur(t.awake)} · День ${fmtDur(t.total)}`;
   }
 
   function overviewText() {
     const awake = segs.filter(s => s.kind === "awake");
     const sleep = segs.filter(s => s.kind === "sleep");
+    const t = calcTotals();
 
     const lines = [];
     lines.push("Сон");
     lines.push("");
     lines.push("Время бодрствования");
     for (const s of awake) {
-      const dur = Math.max(0, s.end - s.start);
-      lines.push(`${s.label} (${minToTime(s.start)}–${minToTime(s.end)})  ${fmtDurLikeTable(dur)}`);
+      const d = Math.max(0, s.end - s.start);
+      lines.push(`${s.label} (${minToTime(s.start)}–${minToTime(s.end)})  ${fmtDurLikeTable(d)}`);
     }
     lines.push("");
     lines.push("Дневной сон");
     for (const s of sleep) {
-      const dur = Math.max(0, s.end - s.start);
-      lines.push(`${s.label} (${minToTime(s.start)}–${minToTime(s.end)})  ${fmtDurLikeTable(dur)}`);
+      const d = Math.max(0, s.end - s.start);
+      lines.push(`${s.label} (${minToTime(s.start)}–${minToTime(s.end)})  ${fmtDurLikeTable(d)}`);
     }
-
-    const t = calcTotals();
     lines.push("");
-    lines.push(`Итого: Сон ${fmtDur(t.sleep)} · Бодрств. ${fmtDur(t.awake)} · За день ${fmtDur(t.total)} (${minToTime(t.dayStart)}–${minToTime(t.dayEnd)})`);
+    lines.push(`Итого: Сон ${fmtDur(t.sleep)} · Бодрств. ${fmtDur(t.awake)} · День ${fmtDur(t.total)} (${minToTime(t.dayStart)}–${minToTime(t.dayEnd)})`);
     return lines.join("\n");
   }
 
-  // ===== Validate & render =====
+  // ===== save/load =====
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        v: 3,
+        savedAt: Date.now(),
+        segs: segs.map(s => ({...s}))
+      }));
+    } catch {}
+  }
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      const p = JSON.parse(raw);
+      if (!p || p.v !== 3 || !Array.isArray(p.segs)) return null;
+
+      const restored = p.segs
+        .filter(x => x && (x.kind === "sleep" || x.kind === "awake"))
+        .map(x => ({
+          kind: x.kind,
+          label: String(x.label ?? ""),
+          start: Number(x.start),
+          end: Number(x.end)
+        }));
+
+      if (!restored.length) return null;
+
+      for (const s of restored) {
+        if (!Number.isFinite(s.start) || !Number.isFinite(s.end)) return null;
+        if (s.end <= s.start) s.end = s.start + 1;
+        s.start = clamp(s.start, 0, 1438);
+        s.end = clamp(s.end, 1, 1439);
+      }
+      return restored;
+    } catch {
+      return null;
+    }
+  }
+
+  // ===== export =====
+  function exportJson() {
+    const out = segs.map(s => ({
+      kind: s.kind,
+      label: s.label,
+      start: minToTime(s.start),
+      end: minToTime(s.end),
+      durationMin: Math.max(0, s.end - s.start)
+    }));
+    const json = JSON.stringify(out, null, 2);
+    navigator.clipboard?.writeText?.(json).catch(() => {});
+    console.log("EXPORT:", out);
+    alert("JSON экспортирован: см. консоль (и буфер обмена, если разрешено).");
+  }
+
+  // ===== validate + render =====
   function validateAndRender() {
     renderStats();
     renderCards();
     renderTable();
 
     const v = validate();
-    if (v.ok) {
-      statusEl.innerHTML = `<span class="ok">ОК: график непрерывный, длительности корректны.</span>`;
-    } else {
-      statusEl.innerHTML = `<span class="warn">Есть проблемы:</span> ${v.msg.join("; ")}`;
-    }
+    statusEl.innerHTML = v.ok
+      ? `<span class="ok">ОК</span>`
+      : `<span class="warn">Проблемы:</span> ${v.msg.join("; ")}`;
 
-    // если модалка открыта — обновим сводку
     if (modal.classList.contains("show")) {
       renderOverview();
     }
   }
 
-  // ===== Buttons & modal events =====
+  // ===== events =====
   document.querySelector("#btnReset").addEventListener("click", () => {
     segs = deepClone(example);
-    makeContinuous();
     saveState();
     validateAndRender();
   });
@@ -1160,33 +1139,21 @@
 
   document.querySelector("#btnCopyOverview").addEventListener("click", () => {
     const txt = overviewText();
-    if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(txt).then(() => {
-        alert("Скопировано 👍");
-      }).catch(() => {
-        alert("Не получилось скопировать. Текст в консоли.");
-        console.log(txt);
-      });
-    } else {
-      alert("Буфер обмена недоступен. Текст в консоли.");
-      console.log(txt);
-    }
+    navigator.clipboard?.writeText?.(txt)
+      .then(() => alert("Скопировано 👍"))
+      .catch(() => { console.log(txt); alert("Не получилось скопировать — текст в консоли."); });
   });
 
-  // закрытие по клику на фон
-  modal.addEventListener("click", (e) => {
+  // Закрытие по тапу на фон — делаем pointerdown, чтобы iOS точно ловил
+  modal.addEventListener("pointerdown", (e) => {
     if (e.target === modal) closeModal();
   });
 
-  // ESC (на десктопе)
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && modal.classList.contains("show")) {
-      closeModal();
-    }
+    if (e.key === "Escape" && modal.classList.contains("show")) closeModal();
   });
 
-  // ===== Init =====
-  makeContinuous();
+  // ===== init =====
   saveState();
   validateAndRender();
 })();
