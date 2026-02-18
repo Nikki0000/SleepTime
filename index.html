@@ -2,96 +2,387 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <title>График сна новорождённого</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />
+  <title>Сон новорождённого — дневной график</title>
   <style>
-    :root { --bg:#0b0b0d; --card:#15151a; --text:#f2f2f2; --muted:#b7b7c2; --line:#2a2a33; }
-    * { box-sizing: border-box; }
-    body {
-      margin:0; padding:16px;
-      font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Arial,sans-serif;
-      background: radial-gradient(1200px 600px at 20% 0%, #1a1a22 0%, #0b0b0d 60%);
+    :root{
+      --bg:#0b0b0d;
+      --card:#14141a;
+      --card2:#171720;
+      --text:#f2f2f2;
+      --muted:#b7b7c2;
+      --line:#2a2a33;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --ok:#bfffcf;
+      --warn:#ffb2b2;
+      --sleep:#76d7ff;
+      --awake:#ffd76a;
+
+      --r12:12px;
+      --r14:14px;
+      --r16:16px;
+      --p12:12px;
+      --p14:14px;
+      --p16:16px;
+    }
+
+    *{ box-sizing:border-box; }
+    html, body{ height:100%; }
+    body{
+      margin:0;
+      padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Arial,sans-serif;
+      background:
+        radial-gradient(1200px 600px at 20% 0%, #1a1a22 0%, #0b0b0d 60%),
+        radial-gradient(900px 500px at 85% 25%, rgba(118,215,255,.08) 0%, rgba(0,0,0,0) 55%),
+        radial-gradient(900px 500px at 75% 85%, rgba(255,215,106,.06) 0%, rgba(0,0,0,0) 60%);
+      color:var(--text);
+    }
+
+    .wrap{ max-width:1100px; margin:0 auto; }
+
+    .header{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      align-items:flex-end;
+      justify-content:space-between;
+      margin-bottom: 12px;
+    }
+    h1{
+      margin:0;
+      font-size:18px;
+      letter-spacing:.2px;
+    }
+    .sub{
+      color:var(--muted);
+      font-size:13px;
+      margin-top:6px;
+      line-height:1.35;
+      max-width: 740px;
+    }
+
+    .btns{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    button{
+      appearance:none;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.06);
       color: var(--text);
+      padding:10px 12px;
+      border-radius: var(--r12);
+      cursor:pointer;
+      font-size:14px;
+      transition: .15s ease;
+      box-shadow: 0 1px 0 rgba(255,255,255,.04) inset;
     }
-    .wrap { max-width: 1100px; margin: 0 auto; }
-    .header { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; margin-bottom: 12px; }
-    h1 { margin:0; font-size:18px; letter-spacing: .2px; }
-    .sub { color: var(--muted); font-size:13px; margin-top:6px; line-height: 1.35; }
-    .panel { background: rgba(21,21,26,.9); border:1px solid var(--line); border-radius:14px; padding:14px; }
-    .row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; }
-    .stats { display:flex; gap:10px; flex-wrap:wrap; }
-    .pill {
-      border:1px solid var(--line); background: rgba(255,255,255,.03);
-      padding:8px 10px; border-radius:999px; font-size:13px; color: var(--muted);
+    button:hover{ background: rgba(255,255,255,.10); }
+    button:active{ transform: translateY(1px); }
+
+    .panel{
+      background: rgba(20,20,26,.90);
+      border: 1px solid var(--line);
+      border-radius: var(--r16);
+      padding: var(--p14);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(6px);
     }
-    .pill b { color: var(--text); font-weight: 650; }
-    button {
-      appearance:none; border:1px solid var(--line);
-      background: rgba(255,255,255,.05); color: var(--text);
-      padding:10px 12px; border-radius:12px; cursor:pointer; font-size:14px;
+
+    .panel-top{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
     }
-    button:hover { background: rgba(255,255,255,.08); }
-    .grid { margin-top:12px; overflow:auto; border-radius:14px; border:1px solid var(--line); }
-    table { width:100%; border-collapse: collapse; min-width: 960px; background: rgba(21,21,26,.9); }
-    th, td { padding:10px 10px; border-bottom:1px solid var(--line); vertical-align: middle; }
-    th { text-align:left; font-size:12px; color: var(--muted); letter-spacing:.3px; text-transform: uppercase; }
-    tr:last-child td { border-bottom:none; }
-    .tag {
-      display:inline-flex; align-items:center; gap:6px;
-      padding:6px 10px; border-radius:999px; font-size:12px;
-      border:1px solid var(--line); background: rgba(255,255,255,.03);
+
+    .stats{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:stretch;
     }
-    .tag .dot { width:8px; height:8px; border-radius:50%; background: #888; }
-    .tag.sleep .dot { background:#76d7ff; }
-    .tag.awake .dot { background:#ffd76a; }
-    .label { color: var(--text); font-weight: 650; }
-    .muted { color: var(--muted); font-size: 12px; }
-    input[type="time"], input[type="number"]{
-      width: 120px;
-      background: rgba(0,0,0,.35);
+
+    .pill{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      padding:8px 10px;
+      border-radius: 999px;
+      font-size:13px;
+      color: var(--muted);
+      display:flex;
+      gap:6px;
+      align-items:baseline;
+      white-space:nowrap;
+    }
+    .pill b{
+      color: var(--text);
+      font-weight: 700;
+      letter-spacing:.1px;
+    }
+
+    .status{
+      font-size:12px;
+      color: var(--muted);
+    }
+    .ok{ color: var(--ok); }
+    .warn{ color: var(--warn); }
+
+    .hint{
+      margin-top:10px;
+      color: var(--muted);
+      font-size:12px;
+      line-height:1.35;
+    }
+    .hint ul{
+      margin:6px 0 0 18px;
+      padding:0;
+    }
+
+    /* ===== Desktop table ===== */
+    .grid{
+      margin-top:12px;
+      overflow:auto;
+      border-radius: var(--r16);
+      border:1px solid var(--line);
+      background: rgba(20,20,26,.90);
+      box-shadow: var(--shadow);
+    }
+
+    table{
+      width:100%;
+      border-collapse: collapse;
+      min-width: 980px;
+      background: transparent;
+    }
+    th, td{
+      padding:10px 10px;
+      border-bottom:1px solid var(--line);
+      vertical-align: middle;
+    }
+    th{
+      text-align:left;
+      font-size:12px;
+      color: var(--muted);
+      letter-spacing:.3px;
+      text-transform: uppercase;
+      background: rgba(255,255,255,.02);
+    }
+    tr:last-child td{ border-bottom:none; }
+
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      white-space:nowrap;
+    }
+    .dot{
+      width:8px;
+      height:8px;
+      border-radius:50%;
+      background:#888;
+    }
+    .sleep .dot{ background: var(--sleep); }
+    .awake .dot{ background: var(--awake); }
+
+    .label{
+      color: var(--text);
+      font-weight: 700;
+      letter-spacing:.1px;
+      white-space:nowrap;
+    }
+    .muted{
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    input[type="time"], input[type="text"]{
+      width: 122px;
+      background: rgba(0,0,0,.28);
       border: 1px solid var(--line);
       color: var(--text);
-      padding: 8px 10px;
-      border-radius: 10px;
+      padding: 10px 10px;
+      border-radius: 12px;
       font-size: 14px;
+      outline:none;
     }
-    input[type="number"]{ width: 110px; }
-    .hint {
-      margin-top:10px; color: var(--muted); font-size:12px; line-height:1.35;
+    input[type="text"].mins{ width: 110px; }
+
+    input:focus{
+      border-color: rgba(255,255,255,.18);
+      box-shadow: 0 0 0 3px rgba(118,215,255,.10);
     }
-    .warn { color:#ffb2b2; }
-    .ok { color:#bfffcf; }
+
+    /* ===== Mobile cards ===== */
+    .cards{
+      display:none;
+      margin-top: 12px;
+      gap: 10px;
+    }
+
+    .card{
+      background: rgba(20,20,26,.90);
+      border: 1px solid var(--line);
+      border-radius: var(--r16);
+      padding: var(--p14);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(6px);
+    }
+
+    .card-head{
+      display:flex;
+      gap:10px;
+      justify-content:space-between;
+      align-items:flex-start;
+    }
+
+    .card-title{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      min-width: 0;
+    }
+    .card-title .label{
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 260px;
+    }
+
+    .dur-big{
+      font-weight: 800;
+      letter-spacing:.1px;
+      text-align:right;
+      white-space:nowrap;
+    }
+    .dur-small{
+      color: var(--muted);
+      font-size:12px;
+      text-align:right;
+      margin-top: 2px;
+      white-space:nowrap;
+    }
+
+    .card-body{
+      margin-top: 12px;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+
+    .field{
+      background: rgba(255,255,255,.03);
+      border:1px solid var(--line);
+      border-radius: var(--r14);
+      padding:10px 10px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      min-width: 0;
+    }
+
+    .field .k{
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing:.2px;
+    }
+
+    .field .v{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+    }
+
+    .field .v input{
+      width: 100%;
+      padding: 10px 10px;
+      border-radius: 12px;
+    }
+
+    .field.full{
+      grid-column: 1 / -1;
+    }
+
+    .footer-note{
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+      opacity: .95;
+    }
+
+    /* ===== Responsive rules ===== */
+    @media (max-width: 860px){
+      /* на телефоне/планшете прячем таблицу и показываем карточки */
+      .grid{ display:none; }
+      .cards{ display:grid; }
+      .sub{ max-width: unset; }
+      .stats{ gap:8px; }
+      .pill{ padding:8px 10px; }
+    }
+
+    @media (max-width: 420px){
+      h1{ font-size:16px; }
+      .sub{ font-size:12px; }
+      .card-body{ grid-template-columns: 1fr; }
+      input[type="time"], input[type="text"]{ font-size: 16px; } /* iOS: чтобы не зумило */
+      button{ width: 100%; }
+      .btns{ width: 100%; }
+    }
   </style>
 </head>
+
 <body>
 <div class="wrap">
   <div class="header">
     <div>
       <h1>График сна (ДС) и бодрствования (ВВ)</h1>
       <div class="sub">
-        Правь время/длительность — остальные записи автоматически подстроятся, чтобы график оставался непрерывным.
+        Правь время или минуты — остальные сегменты автоматически подстроятся, чтобы график оставался непрерывным.
+        На телефоне показаны карточки (без горизонтального скролла).
       </div>
     </div>
-    <div class="row">
+    <div class="btns">
       <button id="btnReset">Сброс к примеру</button>
       <button id="btnExport">Экспорт JSON</button>
     </div>
   </div>
 
   <div class="panel">
-    <div class="row">
+    <div class="panel-top">
       <div class="stats" id="stats"></div>
-      <div class="muted" id="status"></div>
+      <div class="status" id="status"></div>
     </div>
+
     <div class="hint">
-      <b>Как работает автоподстройка:</b><br>
-      • Меняешь <b>Start</b> или <b>End</b> — это фиксирует новую границу, а <b>все последующие сегменты сдвигаются</b> на разницу (их длительности сохраняются).<br>
-      • Меняешь <b>Длительность</b> — пересчитывается End и дальше происходит тот же сдвиг.<br>
-      Если нужно — скажи, и сделаю второй режим: “фиксируем End, а меняем длительность текущего” или “не сдвигать дальше, только пересчитать соседние”.
+      <b>Как работает автоподстройка:</b>
+      <ul>
+        <li>Меняешь <b>Start</b> или <b>End</b> — фиксируется граница, <b>весь хвост</b> сдвигается на разницу.</li>
+        <li>Меняешь <b>Минуты</b> — пересчитывается End и также сдвигается хвост.</li>
+        <li><b>Минуты применяются по Enter или при выходе из поля</b> (так удобнее на iOS).</li>
+      </ul>
+      <div class="footer-note">
+        Автосохранение включено: изменения сохраняются в браузере (localStorage).
+      </div>
     </div>
   </div>
 
-  <div class="grid" style="margin-top:12px;">
+  <!-- Mobile cards -->
+  <div class="cards" id="cards"></div>
+
+  <!-- Desktop table -->
+  <div class="grid">
     <table>
       <thead>
         <tr>
@@ -113,7 +404,10 @@
 (() => {
   "use strict";
 
-  // ====== Utils (минуты внутри суток) ======
+  // ===== Storage =====
+  const STORAGE_KEY = "baby_sleep_v1";
+
+  // ===== Utils =====
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const pad2 = (n) => String(n).padStart(2, "0");
 
@@ -121,11 +415,13 @@
     // "HH:MM"
     if (!t || typeof t !== "string") return 0;
     const [hh, mm] = t.split(":").map(Number);
+    if (!Number.isFinite(hh) || !Number.isFinite(mm)) return 0;
     return (hh * 60) + mm;
   }
 
   function minToTime(min) {
-    // допускаем > 1440, отображаем по модулю суток (но для дня обычно не нужно)
+    // отображаем HH:MM по модулю суток
+    min = Math.round(min);
     min = ((min % 1440) + 1440) % 1440;
     const hh = Math.floor(min / 60);
     const mm = min % 60;
@@ -140,9 +436,19 @@
     return `${h} ч ${m} мин`;
   }
 
-  // ====== Data model ======
-  // Сегменты по порядку, start/end в минутах от 00:00
-  // Пример с твоей картинки
+  function safeIntFromText(s) {
+    // оставляем только цифры
+    const only = String(s ?? "").replace(/[^\d]/g, "");
+    if (!only) return NaN;
+    const n = parseInt(only, 10);
+    return Number.isFinite(n) ? n : NaN;
+  }
+
+  function deepClone(x){
+    return structuredClone ? structuredClone(x) : JSON.parse(JSON.stringify(x));
+  }
+
+  // ===== Example data =====
   const example = [
     { kind: "awake", label: "1 ВВ", start: timeToMin("07:25"), end: timeToMin("08:15") },
     { kind: "sleep", label: "1 ДС", start: timeToMin("08:15"), end: timeToMin("09:45") },
@@ -151,7 +457,7 @@
     { kind: "awake", label: "3 ВВ", start: timeToMin("11:40"), end: timeToMin("12:40") },
     { kind: "sleep", label: "3 ДС", start: timeToMin("12:40"), end: timeToMin("14:40") },
     { kind: "awake", label: "4 ВВ", start: timeToMin("14:40"), end: timeToMin("15:55") },
-    { kind: "sleep", label: "4 ДС", start: timeToMin("16:00"), end: timeToMin("16:40") }, // внимание: в примере есть разрыв 15:55 -> 16:00
+    { kind: "sleep", label: "4 ДС", start: timeToMin("16:00"), end: timeToMin("16:40") },
     { kind: "awake", label: "5 ВВ", start: timeToMin("16:40"), end: timeToMin("17:35") },
     { kind: "sleep", label: "5 ДС", start: timeToMin("17:35"), end: timeToMin("19:00") },
     { kind: "awake", label: "6 ВВ", start: timeToMin("19:00"), end: timeToMin("20:15") },
@@ -159,30 +465,27 @@
     { kind: "awake", label: "7 ВВ", start: timeToMin("20:55"), end: timeToMin("22:00") },
   ];
 
-  // Текущие данные (копия)
-  let segs = structuredClone(example);
+  // ===== State =====
+  let segs = loadState() ?? deepClone(example);
 
-  // ====== Normalize continuity ======
-  // Если есть разрывы (как 15:55 -> 16:00), мы можем:
-  // - либо оставлять как есть,
-  // - либо при первом рендере "подтянуть" start следующего к end предыдущего.
-  // Чтобы логика автосдвига была понятной, делаем режим "непрерывно":
+  // ===== Elements =====
+  const tbody = document.querySelector("#tbody");
+  const cards = document.querySelector("#cards");
+  const statsEl = document.querySelector("#stats");
+  const statusEl = document.querySelector("#status");
+
+  // ===== Continuity helpers =====
+  // делаем график непрерывным: start[i] = end[i-1], сохраняя длительность сегмента
   function makeContinuous() {
     for (let i = 1; i < segs.length; i++) {
       const prev = segs[i - 1];
       const cur = segs[i];
-      // сдвигаем текущий сегмент так, чтобы его start == prev.end, сохраняя длительность текущего
       const dur = cur.end - cur.start;
       cur.start = prev.end;
       cur.end = cur.start + Math.max(1, dur);
     }
   }
 
-  // Если хочешь сохранять разрывы — можно выключить вызов makeContinuous() ниже.
-  makeContinuous();
-
-  // ====== Core adjust logic ======
-  // Сдвигаем все сегменты начиная с index (включительно) на delta минут.
   function shiftFrom(index, delta) {
     if (!delta) return;
     for (let i = index; i < segs.length; i++) {
@@ -191,8 +494,6 @@
     }
   }
 
-  // Обеспечиваем непрерывность: start[i] = end[i-1]
-  // (при этом сохраняем длительность каждого сегмента, сдвигая end)
   function enforceContinuityFrom(index) {
     for (let i = Math.max(1, index); i < segs.length; i++) {
       const prev = segs[i - 1];
@@ -203,45 +504,36 @@
     }
   }
 
-  // Изменение времени границы:
-  // - Меняем start или end у сегмента i
-  // - Считаем delta = новое - старое для этой точки
-  // - Двигаем все последующие сегменты, чтобы сохранить их длительности
+  // ===== Update logic =====
   function updateTime(i, field, newMin) {
     const s = segs[i];
     const oldVal = s[field];
 
-    // простая защита от "минус" и слишком больших:
+    // допускаем выход за сутки; отображение time всё равно по модулю суток
     newMin = clamp(Math.round(newMin), -24*60, 48*60);
 
     if (newMin === oldVal) return;
 
-    // запрещаем нулевую/отрицательную длительность
+    // не даём длительности стать <=0
     if (field === "end" && newMin <= s.start) newMin = s.start + 1;
     if (field === "start" && newMin >= s.end) newMin = s.end - 1;
 
-    // фиксируем новую точку
     s[field] = newMin;
 
-    // delta для сдвига "хвоста"
     const delta = s[field] - oldVal;
 
-    // если меняли end — граница влияет на следующий сегмент и дальше
-    // если меняли start — граница влияет на текущий и дальше (потому что весь сегмент "переезжает" по времени)
-    // Мы делаем единый принцип: сдвигаем ВСЕ последующие сегменты (следующий индекс, если end; текущий индекс, если start)
+    // если меняем end — двигаем следующий и дальше
+    // если меняем start — двигаем текущий и дальше
     const shiftIndex = (field === "end") ? (i + 1) : i;
     shiftFrom(shiftIndex, delta);
 
-    // теперь чинем непрерывность вокруг измененного места
-    // 1) поджимаем предыдущий сегмент, чтобы его end совпал с текущим start
+    // фиксируем стыки вокруг
     if (i > 0) segs[i - 1].end = segs[i].start;
-
-    // 2) поджимаем следующий сегмент, чтобы его start совпал с текущим end
     if (i + 1 < segs.length) segs[i + 1].start = segs[i].end;
 
-    // 3) и дальше делаем непрерывно
     enforceContinuityFrom(i + 1);
 
+    saveState();
     validateAndRender();
   }
 
@@ -249,6 +541,7 @@
     newDurationMin = Math.max(1, Math.round(newDurationMin));
     const s = segs[i];
     const oldEnd = s.end;
+
     const newEnd = s.start + newDurationMin;
     s.end = newEnd;
 
@@ -258,14 +551,11 @@
     if (i + 1 < segs.length) segs[i + 1].start = s.end;
     enforceContinuityFrom(i + 1);
 
+    saveState();
     validateAndRender();
   }
 
-  // ====== Render ======
-  const tbody = document.querySelector("#tbody");
-  const statsEl = document.querySelector("#stats");
-  const statusEl = document.querySelector("#status");
-
+  // ===== Stats =====
   function calcTotals() {
     let sleep = 0, awake = 0;
     for (const s of segs) {
@@ -288,14 +578,29 @@
     `;
   }
 
+  // ===== Validation =====
+  function validate() {
+    let ok = true;
+    const msg = [];
+
+    for (let i = 0; i < segs.length; i++) {
+      const s = segs[i];
+      if (s.end <= s.start) { ok = false; msg.push(`"${s.label}" имеет некорректную длительность`); }
+      if (i > 0 && segs[i].start !== segs[i-1].end) {
+        ok = false; msg.push(`Разрыв между "${segs[i-1].label}" и "${s.label}"`);
+      }
+    }
+
+    return { ok, msg };
+  }
+
+  // ===== Render (table + cards) =====
   function renderTable() {
     tbody.innerHTML = "";
-
     segs.forEach((s, i) => {
       const dur = Math.max(0, s.end - s.start);
 
       const tr = document.createElement("tr");
-
       const typeTag = `
         <span class="tag ${s.kind}">
           <span class="dot"></span>
@@ -308,72 +613,204 @@
         <td>${typeTag}</td>
         <td class="label">${s.label}</td>
         <td>
-          <input type="time" step="60" value="${minToTime(s.start)}" data-i="${i}" data-field="start">
+          <input type="time" step="60" value="${minToTime(s.start)}" data-i="${i}" data-field="start" aria-label="Start">
         </td>
         <td>
-          <input type="time" step="60" value="${minToTime(s.end)}" data-i="${i}" data-field="end">
+          <input type="time" step="60" value="${minToTime(s.end)}" data-i="${i}" data-field="end" aria-label="End">
         </td>
-        <td>${fmtDur(dur)} <div class="muted">${dur} мин</div></td>
         <td>
-          <input type="number" min="1" step="1" value="${dur}" data-i="${i}" data-field="dur">
+          <div>${fmtDur(dur)}</div>
+          <div class="muted">${dur} мин</div>
+        </td>
+        <td>
+          <input
+            type="text"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            value="${dur}"
+            data-i="${i}"
+            data-field="dur"
+            class="mins"
+            aria-label="Минуты"
+          >
         </td>
       `;
-
       tbody.appendChild(tr);
     });
 
-    // Навешиваем обработчики
-    tbody.querySelectorAll('input[type="time"]').forEach(inp => {
+    bindInputs(tbody);
+  }
+
+  function renderCards() {
+    cards.innerHTML = "";
+    segs.forEach((s, i) => {
+      const dur = Math.max(0, s.end - s.start);
+
+      const el = document.createElement("div");
+      el.className = "card";
+
+      const typeTag = `
+        <span class="tag ${s.kind}">
+          <span class="dot"></span>
+          ${s.kind === "sleep" ? "Сон (ДС)" : "Бодрств. (ВВ)"}
+        </span>
+      `;
+
+      el.innerHTML = `
+        <div class="card-head">
+          <div class="card-title">
+            ${typeTag}
+            <div class="label">${s.label}</div>
+            <div class="muted">${minToTime(s.start)} → ${minToTime(s.end)}</div>
+          </div>
+          <div>
+            <div class="dur-big">${fmtDur(dur)}</div>
+            <div class="dur-small">${dur} мин</div>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="field">
+            <div class="k">Start</div>
+            <div class="v">
+              <input type="time" step="60" value="${minToTime(s.start)}" data-i="${i}" data-field="start" aria-label="Start">
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="k">End</div>
+            <div class="v">
+              <input type="time" step="60" value="${minToTime(s.end)}" data-i="${i}" data-field="end" aria-label="End">
+            </div>
+          </div>
+
+          <div class="field full">
+            <div class="k">Минуты (применить Enter или выход из поля)</div>
+            <div class="v">
+              <input
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                value="${dur}"
+                data-i="${i}"
+                data-field="dur"
+                class="mins"
+                aria-label="Минуты"
+              >
+            </div>
+          </div>
+        </div>
+      `;
+
+      cards.appendChild(el);
+    });
+
+    bindInputs(cards);
+  }
+
+  // ===== Input binding (shared for table & cards) =====
+  function bindInputs(root) {
+    // TIME inputs: применяем на change (iOS picker отдаёт значение целиком)
+    root.querySelectorAll('input[type="time"]').forEach(inp => {
       inp.addEventListener("change", (e) => {
         const i = Number(e.target.dataset.i);
         const field = e.target.dataset.field; // start | end
-        const newMin = timeToMin(e.target.value);
-        updateTime(i, field, newMin);
+        updateTime(i, field, timeToMin(e.target.value));
       });
     });
 
-    tbody.querySelectorAll('input[type="number"]').forEach(inp => {
-      inp.addEventListener("change", (e) => {
+    // MINUTES inputs: iOS-friendly. Применяем по Enter или blur.
+    root.querySelectorAll('input.mins').forEach(inp => {
+      // фильтруем ввод "на лету" (только цифры)
+      inp.addEventListener("input", (e) => {
+        const v = e.target.value;
+        const cleaned = String(v).replace(/[^\d]/g, "");
+        if (cleaned !== v) e.target.value = cleaned;
+      });
+
+      // удобное выделение при фокусе
+      inp.addEventListener("focus", (e) => {
+        // таймаут помогает iOS корректно выделять
+        setTimeout(() => {
+          try { e.target.select(); } catch {}
+        }, 0);
+      });
+
+      // Enter -> blur -> apply
+      inp.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          e.target.blur();
+        }
+      });
+
+      // применяем по выходу из поля
+      inp.addEventListener("blur", (e) => {
         const i = Number(e.target.dataset.i);
-        const newDur = Number(e.target.value);
-        updateDuration(i, newDur);
+        const raw = e.target.value;
+        const n = safeIntFromText(raw);
+
+        if (!Number.isFinite(n) || n <= 0) {
+          // если ввели ерунду — вернём текущее значение
+          const dur = Math.max(0, segs[i].end - segs[i].start);
+          e.target.value = String(dur);
+          return;
+        }
+
+        updateDuration(i, n);
       });
     });
   }
 
-  function validate() {
-    // Проверяем непрерывность и корректность
-    let ok = true;
-    let msg = [];
-    for (let i = 0; i < segs.length; i++) {
-      const s = segs[i];
-      if (s.end <= s.start) { ok = false; msg.push(`"${s.label}" имеет некорректную длительность`); }
-      if (i > 0 && segs[i].start !== segs[i-1].end) {
-        ok = false; msg.push(`Разрыв между "${segs[i-1].label}" и "${s.label}"`);
+  // ===== Save / Load =====
+  function saveState() {
+    try {
+      const payload = {
+        v: 1,
+        savedAt: Date.now(),
+        segs: segs.map(s => ({
+          kind: s.kind,
+          label: s.label,
+          start: s.start,
+          end: s.end
+        }))
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    } catch { /* ignore */ }
+  }
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+
+      if (!parsed || parsed.v !== 1 || !Array.isArray(parsed.segs)) return null;
+
+      const restored = parsed.segs
+        .filter(x => x && (x.kind === "sleep" || x.kind === "awake"))
+        .map(x => ({
+          kind: x.kind,
+          label: String(x.label ?? ""),
+          start: Number(x.start),
+          end: Number(x.end)
+        }));
+
+      if (restored.length === 0) return null;
+
+      // минимальная валидация
+      for (const s of restored) {
+        if (!Number.isFinite(s.start) || !Number.isFinite(s.end)) return null;
+        if (s.end <= s.start) s.end = s.start + 1;
       }
-    }
-    return { ok, msg };
-  }
-
-  function validateAndRender() {
-    renderStats();
-    renderTable();
-    const v = validate();
-    if (v.ok) {
-      statusEl.innerHTML = `<span class="ok">График непрерывный, длительности корректны.</span>`;
-    } else {
-      statusEl.innerHTML = `<span class="warn">Есть проблемы:</span> ${v.msg.join("; ")}`;
+      return restored;
+    } catch {
+      return null;
     }
   }
 
-  // ====== Buttons ======
-  document.querySelector("#btnReset").addEventListener("click", () => {
-    segs = structuredClone(example);
-    makeContinuous();
-    validateAndRender();
-  });
-
-  document.querySelector("#btnExport").addEventListener("click", () => {
+  // ===== Export =====
+  function exportJson() {
     const out = segs.map(s => ({
       kind: s.kind,
       label: s.label,
@@ -382,12 +819,45 @@
       durationMin: Math.max(0, s.end - s.start)
     }));
     const json = JSON.stringify(out, null, 2);
-    navigator.clipboard?.writeText(json).catch(() => {});
-    alert("JSON скопирован в буфер (если браузер разрешил) и доступен в консоли.");
+
+    // попробуем скопировать
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(json).catch(() => {});
+    }
+
     console.log("EXPORT:", out);
+    alert("JSON экспортирован: см. консоль (и буфер обмена, если разрешено).");
+  }
+
+  // ===== Validate & render =====
+  function validateAndRender() {
+    renderStats();
+    renderCards();
+    renderTable();
+
+    const v = validate();
+    if (v.ok) {
+      statusEl.innerHTML = `<span class="ok">ОК: график непрерывный, длительности корректны.</span>`;
+    } else {
+      statusEl.innerHTML = `<span class="warn">Есть проблемы:</span> ${v.msg.join("; ")}`;
+    }
+  }
+
+  // ===== Buttons =====
+  document.querySelector("#btnReset").addEventListener("click", () => {
+    segs = deepClone(example);
+    // превращаем в непрерывный график (убираем разрывы типа 15:55 -> 16:00)
+    makeContinuous();
+    saveState();
+    validateAndRender();
   });
 
-  // ====== Init ======
+  document.querySelector("#btnExport").addEventListener("click", exportJson);
+
+  // ===== Init =====
+  // приводим к непрерывности на старте (если в сохранённых данных разрывы — тоже подожмём)
+  makeContinuous();
+  saveState();
   validateAndRender();
 })();
 </script>
