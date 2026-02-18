@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>График сна новорождённого</title>
+  <style>
+    :root { --bg:#0b0b0d; --card:#15151a; --text:#f2f2f2; --muted:#b7b7c2; --line:#2a2a33; }
+    * { box-sizing: border-box; }
+    body {
+      margin:0; padding:16px;
+      font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Arial,sans-serif;
+      background: radial-gradient(1200px 600px at 20% 0%, #1a1a22 0%, #0b0b0d 60%);
+      color: var(--text);
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; }
+    .header { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; margin-bottom: 12px; }
+    h1 { margin:0; font-size:18px; letter-spacing: .2px; }
+    .sub { color: var(--muted); font-size:13px; margin-top:6px; line-height: 1.35; }
+    .panel { background: rgba(21,21,26,.9); border:1px solid var(--line); border-radius:14px; padding:14px; }
+    .row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; }
+    .stats { display:flex; gap:10px; flex-wrap:wrap; }
+    .pill {
+      border:1px solid var(--line); background: rgba(255,255,255,.03);
+      padding:8px 10px; border-radius:999px; font-size:13px; color: var(--muted);
+    }
+    .pill b { color: var(--text); font-weight: 650; }
+    button {
+      appearance:none; border:1px solid var(--line);
+      background: rgba(255,255,255,.05); color: var(--text);
+      padding:10px 12px; border-radius:12px; cursor:pointer; font-size:14px;
+    }
+    button:hover { background: rgba(255,255,255,.08); }
+    .grid { margin-top:12px; overflow:auto; border-radius:14px; border:1px solid var(--line); }
+    table { width:100%; border-collapse: collapse; min-width: 960px; background: rgba(21,21,26,.9); }
+    th, td { padding:10px 10px; border-bottom:1px solid var(--line); vertical-align: middle; }
+    th { text-align:left; font-size:12px; color: var(--muted); letter-spacing:.3px; text-transform: uppercase; }
+    tr:last-child td { border-bottom:none; }
+    .tag {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:6px 10px; border-radius:999px; font-size:12px;
+      border:1px solid var(--line); background: rgba(255,255,255,.03);
+    }
+    .tag .dot { width:8px; height:8px; border-radius:50%; background: #888; }
+    .tag.sleep .dot { background:#76d7ff; }
+    .tag.awake .dot { background:#ffd76a; }
+    .label { color: var(--text); font-weight: 650; }
+    .muted { color: var(--muted); font-size: 12px; }
+    input[type="time"], input[type="number"]{
+      width: 120px;
+      background: rgba(0,0,0,.35);
+      border: 1px solid var(--line);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+    input[type="number"]{ width: 110px; }
+    .hint {
+      margin-top:10px; color: var(--muted); font-size:12px; line-height:1.35;
+    }
+    .warn { color:#ffb2b2; }
+    .ok { color:#bfffcf; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div>
+      <h1>График сна (ДС) и бодрствования (ВВ)</h1>
+      <div class="sub">
+        Правь время/длительность — остальные записи автоматически подстроятся, чтобы график оставался непрерывным.
+      </div>
+    </div>
+    <div class="row">
+      <button id="btnReset">Сброс к примеру</button>
+      <button id="btnExport">Экспорт JSON</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="row">
+      <div class="stats" id="stats"></div>
+      <div class="muted" id="status"></div>
+    </div>
+    <div class="hint">
+      <b>Как работает автоподстройка:</b><br>
+      • Меняешь <b>Start</b> или <b>End</b> — это фиксирует новую границу, а <b>все последующие сегменты сдвигаются</b> на разницу (их длительности сохраняются).<br>
+      • Меняешь <b>Длительность</b> — пересчитывается End и дальше происходит тот же сдвиг.<br>
+      Если нужно — скажи, и сделаю второй режим: “фиксируем End, а меняем длительность текущего” или “не сдвигать дальше, только пересчитать соседние”.
+    </div>
+  </div>
+
+  <div class="grid" style="margin-top:12px;">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Тип</th>
+          <th>Название</th>
+          <th>Start</th>
+          <th>End</th>
+          <th>Длительность</th>
+          <th>Минуты (ред.)</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ====== Utils (минуты внутри суток) ======
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const pad2 = (n) => String(n).padStart(2, "0");
+
+  function timeToMin(t) {
+    // "HH:MM"
+    if (!t || typeof t !== "string") return 0;
+    const [hh, mm] = t.split(":").map(Number);
+    return (hh * 60) + mm;
+  }
+
+  function minToTime(min) {
+    // допускаем > 1440, отображаем по модулю суток (но для дня обычно не нужно)
+    min = ((min % 1440) + 1440) % 1440;
+    const hh = Math.floor(min / 60);
+    const mm = min % 60;
+    return `${pad2(hh)}:${pad2(mm)}`;
+  }
+
+  function fmtDur(mins) {
+    mins = Math.max(0, Math.round(mins));
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    if (h <= 0) return `${m} мин`;
+    return `${h} ч ${m} мин`;
+  }
+
+  // ====== Data model ======
+  // Сегменты по порядку, start/end в минутах от 00:00
+  // Пример с твоей картинки
+  const example = [
+    { kind: "awake", label: "1 ВВ", start: timeToMin("07:25"), end: timeToMin("08:15") },
+    { kind: "sleep", label: "1 ДС", start: timeToMin("08:15"), end: timeToMin("09:45") },
+    { kind: "awake", label: "2 ВВ", start: timeToMin("09:45"), end: timeToMin("11:00") },
+    { kind: "sleep", label: "2 ДС", start: timeToMin("11:00"), end: timeToMin("11:40") },
+    { kind: "awake", label: "3 ВВ", start: timeToMin("11:40"), end: timeToMin("12:40") },
+    { kind: "sleep", label: "3 ДС", start: timeToMin("12:40"), end: timeToMin("14:40") },
+    { kind: "awake", label: "4 ВВ", start: timeToMin("14:40"), end: timeToMin("15:55") },
+    { kind: "sleep", label: "4 ДС", start: timeToMin("16:00"), end: timeToMin("16:40") }, // внимание: в примере есть разрыв 15:55 -> 16:00
+    { kind: "awake", label: "5 ВВ", start: timeToMin("16:40"), end: timeToMin("17:35") },
+    { kind: "sleep", label: "5 ДС", start: timeToMin("17:35"), end: timeToMin("19:00") },
+    { kind: "awake", label: "6 ВВ", start: timeToMin("19:00"), end: timeToMin("20:15") },
+    { kind: "sleep", label: "6 ДС", start: timeToMin("20:15"), end: timeToMin("20:55") },
+    { kind: "awake", label: "7 ВВ", start: timeToMin("20:55"), end: timeToMin("22:00") },
+  ];
+
+  // Текущие данные (копия)
+  let segs = structuredClone(example);
+
+  // ====== Normalize continuity ======
+  // Если есть разрывы (как 15:55 -> 16:00), мы можем:
+  // - либо оставлять как есть,
+  // - либо при первом рендере "подтянуть" start следующего к end предыдущего.
+  // Чтобы логика автосдвига была понятной, делаем режим "непрерывно":
+  function makeContinuous() {
+    for (let i = 1; i < segs.length; i++) {
+      const prev = segs[i - 1];
+      const cur = segs[i];
+      // сдвигаем текущий сегмент так, чтобы его start == prev.end, сохраняя длительность текущего
+      const dur = cur.end - cur.start;
+      cur.start = prev.end;
+      cur.end = cur.start + Math.max(1, dur);
+    }
+  }
+
+  // Если хочешь сохранять разрывы — можно выключить вызов makeContinuous() ниже.
+  makeContinuous();
+
+  // ====== Core adjust logic ======
+  // Сдвигаем все сегменты начиная с index (включительно) на delta минут.
+  function shiftFrom(index, delta) {
+    if (!delta) return;
+    for (let i = index; i < segs.length; i++) {
+      segs[i].start += delta;
+      segs[i].end += delta;
+    }
+  }
+
+  // Обеспечиваем непрерывность: start[i] = end[i-1]
+  // (при этом сохраняем длительность каждого сегмента, сдвигая end)
+  function enforceContinuityFrom(index) {
+    for (let i = Math.max(1, index); i < segs.length; i++) {
+      const prev = segs[i - 1];
+      const cur = segs[i];
+      const dur = cur.end - cur.start;
+      cur.start = prev.end;
+      cur.end = cur.start + Math.max(1, dur);
+    }
+  }
+
+  // Изменение времени границы:
+  // - Меняем start или end у сегмента i
+  // - Считаем delta = новое - старое для этой точки
+  // - Двигаем все последующие сегменты, чтобы сохранить их длительности
+  function updateTime(i, field, newMin) {
+    const s = segs[i];
+    const oldVal = s[field];
+
+    // простая защита от "минус" и слишком больших:
+    newMin = clamp(Math.round(newMin), -24*60, 48*60);
+
+    if (newMin === oldVal) return;
+
+    // запрещаем нулевую/отрицательную длительность
+    if (field === "end" && newMin <= s.start) newMin = s.start + 1;
+    if (field === "start" && newMin >= s.end) newMin = s.end - 1;
+
+    // фиксируем новую точку
+    s[field] = newMin;
+
+    // delta для сдвига "хвоста"
+    const delta = s[field] - oldVal;
+
+    // если меняли end — граница влияет на следующий сегмент и дальше
+    // если меняли start — граница влияет на текущий и дальше (потому что весь сегмент "переезжает" по времени)
+    // Мы делаем единый принцип: сдвигаем ВСЕ последующие сегменты (следующий индекс, если end; текущий индекс, если start)
+    const shiftIndex = (field === "end") ? (i + 1) : i;
+    shiftFrom(shiftIndex, delta);
+
+    // теперь чинем непрерывность вокруг измененного места
+    // 1) поджимаем предыдущий сегмент, чтобы его end совпал с текущим start
+    if (i > 0) segs[i - 1].end = segs[i].start;
+
+    // 2) поджимаем следующий сегмент, чтобы его start совпал с текущим end
+    if (i + 1 < segs.length) segs[i + 1].start = segs[i].end;
+
+    // 3) и дальше делаем непрерывно
+    enforceContinuityFrom(i + 1);
+
+    validateAndRender();
+  }
+
+  function updateDuration(i, newDurationMin) {
+    newDurationMin = Math.max(1, Math.round(newDurationMin));
+    const s = segs[i];
+    const oldEnd = s.end;
+    const newEnd = s.start + newDurationMin;
+    s.end = newEnd;
+
+    const delta = newEnd - oldEnd;
+    shiftFrom(i + 1, delta);
+
+    if (i + 1 < segs.length) segs[i + 1].start = s.end;
+    enforceContinuityFrom(i + 1);
+
+    validateAndRender();
+  }
+
+  // ====== Render ======
+  const tbody = document.querySelector("#tbody");
+  const statsEl = document.querySelector("#stats");
+  const statusEl = document.querySelector("#status");
+
+  function calcTotals() {
+    let sleep = 0, awake = 0;
+    for (const s of segs) {
+      const d = Math.max(0, s.end - s.start);
+      if (s.kind === "sleep") sleep += d;
+      else awake += d;
+    }
+    const dayStart = Math.min(...segs.map(x => x.start));
+    const dayEnd = Math.max(...segs.map(x => x.end));
+    return { sleep, awake, dayStart, dayEnd, total: Math.max(0, dayEnd - dayStart) };
+  }
+
+  function renderStats() {
+    const t = calcTotals();
+    statsEl.innerHTML = `
+      <div class="pill">Сон: <b>${fmtDur(t.sleep)}</b></div>
+      <div class="pill">Бодрств.: <b>${fmtDur(t.awake)}</b></div>
+      <div class="pill">День: <b>${minToTime(t.dayStart)}–${minToTime(t.dayEnd)}</b></div>
+      <div class="pill">Всего: <b>${fmtDur(t.total)}</b></div>
+    `;
+  }
+
+  function renderTable() {
+    tbody.innerHTML = "";
+
+    segs.forEach((s, i) => {
+      const dur = Math.max(0, s.end - s.start);
+
+      const tr = document.createElement("tr");
+
+      const typeTag = `
+        <span class="tag ${s.kind}">
+          <span class="dot"></span>
+          ${s.kind === "sleep" ? "Сон (ДС)" : "Бодрств. (ВВ)"}
+        </span>
+      `;
+
+      tr.innerHTML = `
+        <td class="muted">${i + 1}</td>
+        <td>${typeTag}</td>
+        <td class="label">${s.label}</td>
+        <td>
+          <input type="time" step="60" value="${minToTime(s.start)}" data-i="${i}" data-field="start">
+        </td>
+        <td>
+          <input type="time" step="60" value="${minToTime(s.end)}" data-i="${i}" data-field="end">
+        </td>
+        <td>${fmtDur(dur)} <div class="muted">${dur} мин</div></td>
+        <td>
+          <input type="number" min="1" step="1" value="${dur}" data-i="${i}" data-field="dur">
+        </td>
+      `;
+
+      tbody.appendChild(tr);
+    });
+
+    // Навешиваем обработчики
+    tbody.querySelectorAll('input[type="time"]').forEach(inp => {
+      inp.addEventListener("change", (e) => {
+        const i = Number(e.target.dataset.i);
+        const field = e.target.dataset.field; // start | end
+        const newMin = timeToMin(e.target.value);
+        updateTime(i, field, newMin);
+      });
+    });
+
+    tbody.querySelectorAll('input[type="number"]').forEach(inp => {
+      inp.addEventListener("change", (e) => {
+        const i = Number(e.target.dataset.i);
+        const newDur = Number(e.target.value);
+        updateDuration(i, newDur);
+      });
+    });
+  }
+
+  function validate() {
+    // Проверяем непрерывность и корректность
+    let ok = true;
+    let msg = [];
+    for (let i = 0; i < segs.length; i++) {
+      const s = segs[i];
+      if (s.end <= s.start) { ok = false; msg.push(`"${s.label}" имеет некорректную длительность`); }
+      if (i > 0 && segs[i].start !== segs[i-1].end) {
+        ok = false; msg.push(`Разрыв между "${segs[i-1].label}" и "${s.label}"`);
+      }
+    }
+    return { ok, msg };
+  }
+
+  function validateAndRender() {
+    renderStats();
+    renderTable();
+    const v = validate();
+    if (v.ok) {
+      statusEl.innerHTML = `<span class="ok">График непрерывный, длительности корректны.</span>`;
+    } else {
+      statusEl.innerHTML = `<span class="warn">Есть проблемы:</span> ${v.msg.join("; ")}`;
+    }
+  }
+
+  // ====== Buttons ======
+  document.querySelector("#btnReset").addEventListener("click", () => {
+    segs = structuredClone(example);
+    makeContinuous();
+    validateAndRender();
+  });
+
+  document.querySelector("#btnExport").addEventListener("click", () => {
+    const out = segs.map(s => ({
+      kind: s.kind,
+      label: s.label,
+      start: minToTime(s.start),
+      end: minToTime(s.end),
+      durationMin: Math.max(0, s.end - s.start)
+    }));
+    const json = JSON.stringify(out, null, 2);
+    navigator.clipboard?.writeText(json).catch(() => {});
+    alert("JSON скопирован в буфер (если браузер разрешил) и доступен в консоли.");
+    console.log("EXPORT:", out);
+  });
+
+  // ====== Init ======
+  validateAndRender();
+})();
+</script>
+</body>
+</html>
